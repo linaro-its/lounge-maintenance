@@ -1,0 +1,13 @@
+{
+    "folders": [
+        {
+            "name": "",
+            "upload_path": "",
+            "max_age": "",
+            "max_storage": "",
+            "warn_storage": ""
+        }
+    ],
+    "slack_auth_token": "",
+    "slack_channel_id": ""
+}
