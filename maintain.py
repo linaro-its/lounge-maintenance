@@ -66,8 +66,11 @@ def process_folder(folder):
     """ Check specified folder and take any appropriate action """
     output_header = False
     days_to_keep = int(folder["max_age"])
-    max_storage = int(folder["max_storage"])
-    warn_storage = int(folder["warn_storage"])
+    max_storage = int(folder["max_storage"]) * 1024 * 1024
+    if "warn_storage" in folder:
+        warn_storage = int(folder["warn_storage"]) * 1024 * 1024
+    else:
+        warn_storage = None
     earliest_date = datetime.now() - timedelta(days=days_to_keep)
     # Start by getting a full list of files with their dates and sizes
     total_size = 0
@@ -101,9 +104,12 @@ def process_folder(folder):
             print(report_output)
     if total_size > max_storage:
         output_header = report_header(folder, output_header)
+        # If we have a warning limit, we need to reduce to that, otherwise we reduce to
+        # the max storage.
+        target = warn_storage if warn_storage is not None else max_storage
         post_message(None,
-            f"Storage is over-limit. Need to free up {total_size-max_storage:,d} bytes")
-        get_under_max_size(file_list, folder, total_size, max_storage)
+            f"Storage is over-limit. Need to free up {total_size-target:,d} bytes")
+        get_under_max_size(file_list, total_size, target)
     elif total_size > warn_storage:
         output_header = report_header(folder, output_header)
         post_message(
@@ -129,7 +135,7 @@ def upload_file(content, title):
     )
     print(res.status_code, res.text)
 
-def get_under_max_size(file_list, folder, total_size, max_storage):
+def get_under_max_size(file_list, total_size, max_storage):
     """ Delete enough oldest-first files to get under the size limit """
     # Each tuple in file_list is the name, date and size.
     # We need to sort by date, oldest first.
