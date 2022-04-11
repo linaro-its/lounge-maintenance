@@ -72,6 +72,22 @@ def process_folder(folder):
     else:
         warn_storage = None
     earliest_date = datetime.now() - timedelta(days=days_to_keep)
+    output_header, total_size, file_list = delete_over_age_files(folder, output_header, days_to_keep, earliest_date)
+    if total_size > max_storage:
+        output_header = report_header(folder, output_header)
+        # If we have a warning limit, we need to reduce to that, otherwise we reduce to
+        # the max storage.
+        target = warn_storage if warn_storage is not None else max_storage
+        post_message(None,
+            f"Storage is over-limit. Need to free up {total_size-target:,d} bytes")
+        get_under_max_size(file_list, total_size, target)
+    elif total_size > warn_storage:
+        output_header = report_header(folder, output_header)
+        post_message(
+            f"*_WARNING!_* Total usage is {total_size:,d} bytes; warning threshold is {warn_storage:,d} bytes",
+            f"WARNING! Total usage is {total_size:,d} bytes; warning threshold is {warn_storage:,d} bytes")
+
+def delete_over_age_files(folder, output_header, days_to_keep, earliest_date):
     # Start by getting a full list of files with their dates and sizes
     total_size = 0
     file_list = []
@@ -102,19 +118,7 @@ def process_folder(folder):
             )
         else:
             print(report_output)
-    if total_size > max_storage:
-        output_header = report_header(folder, output_header)
-        # If we have a warning limit, we need to reduce to that, otherwise we reduce to
-        # the max storage.
-        target = warn_storage if warn_storage is not None else max_storage
-        post_message(None,
-            f"Storage is over-limit. Need to free up {total_size-target:,d} bytes")
-        get_under_max_size(file_list, total_size, target)
-    elif total_size > warn_storage:
-        output_header = report_header(folder, output_header)
-        post_message(
-            f"*_WARNING!_* Total usage is {total_size:,d} bytes; warning threshold is {warn_storage:,d} bytes",
-            f"WARNING! Total usage is {total_size:,d} bytes; warning threshold is {warn_storage:,d} bytes")
+    return output_header,total_size,file_list
 
 def upload_file(content, title):
     """ Upload text report to Slack """
